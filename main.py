@@ -10,6 +10,8 @@ today = datetime.now()
 start_date = os.environ['START_DATE']
 city = os.environ['CITY']
 birthday = os.environ['BIRTHDAY']
+birthday_m = os.environ['BIRTHDAY_M']
+
 
 app_id = os.environ["APP_ID"]
 app_secret = os.environ["APP_SECRET"]
@@ -22,7 +24,9 @@ def get_weather():
   url = "http://autodev.openspeech.cn/csp/api/v2.1/weather?openId=aiuicus&clientType=android&sign=android&city=" + city
   res = requests.get(url).json()
   weather = res['data']['list'][0]
-  return weather['weather'], math.floor(weather['temp'])
+  weather_two = res['data']['list'][1]
+  weather_three = res['data']['list'][2]
+  return weather['weather'], math.floor(weather['temp']), weather['wind'], weather['humidity'], weather_two['weather'], weather_three['weather']
 
 def get_count():
   delta = today - datetime.strptime(start_date, "%Y-%m-%d")
@@ -30,6 +34,12 @@ def get_count():
 
 def get_birthday():
   next = datetime.strptime(str(date.today().year) + "-" + birthday, "%Y-%m-%d")
+  if next < datetime.now():
+    next = next.replace(year=next.year + 1)
+  return (next - today).days
+
+def get_birthday_m():
+    next = datetime.strptime(str(date.today().year) + "-" + birthday_m, "%Y-%m-%d")
   if next < datetime.now():
     next = next.replace(year=next.year + 1)
   return (next - today).days
@@ -47,7 +57,18 @@ def get_random_color():
 client = WeChatClient(app_id, app_secret)
 
 wm = WeChatMessage(client)
-wea, temperature = get_weather()
-data = {"weather":{"value":wea},"temperature":{"value":temperature},"love_days":{"value":get_count()},"birthday_left":{"value":get_birthday()},"words":{"value":get_words(), "color":get_random_color()}, "city":{"value":city}}
+wea, temperature, wind_speed, humidity, tomorrow, after_tomorrow = get_weather()
+data = {
+    "city":{"value":city},
+    "weather":{"value":wea, "color":"#a61b29"},
+    "temperature":{"value":temperature},
+    "wind_speed":{"value":wind_speed},
+    "humidity":{"value":humidity},
+    "tomorrow":{"value": tomorrow, "color":"#feba07"},
+    "after_tomorrow":{"value": after_tomorrow, "color":"#feba07"},
+    "love_days":{"value":get_count(), "color":"#f03752"},
+    "birthday_left":{"value":get_birthday(), "color":"#eba0b3"},
+    "birthday_right":{"value":get_birthday_m(), "color":"#eba0b3"}
+}
 res = wm.send_template(user_id, template_id, data)
 print(res)
